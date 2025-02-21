@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="form-container">
+        <form id="docForm">
+            <div class="radio-group">
+                <input type="radio" id="cpf" name="tipo" value="cpf" checked>
+                <label for="cpf">CPF</label>
+                <input type="radio" id="rg" name="tipo" value="rg">
+                <label for="rg">RG</label>
+            </div>
+            <div class="input-group">
+                <input type="text" id="documento" placeholder="Digite o número do documento">
+            </div>
+            <button type="submit">Enviar</button>
+            <div id="mensagem-valido" class="mensagem valido" style="display: none;">
+                Documento Válido
+            </div>
+            <div id="mensagem-invalido" class="mensagem invalido" style="display: none;">
+                Documento Inválido
+            </div>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById('docForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            document.getElementById('mensagem-valido').style.display = 'none';
+            document.getElementById('mensagem-invalido').style.display = 'none';
+            
+            const tipo = document.querySelector('input[name="tipo"]:checked').value;
+            const documento = document.getElementById('documento').value.trim();
+            
+            if (documento === "") {
+                alert("Por favor, digite um número de documento.");
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/validar-documento', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tipo, documento })
+                });
+                
+                if (!response.ok) {
+                    throw new Error("Erro na requisição");
+                }
+
+                const data = await response.json();
+                
+                if (data.valido) {
+                    document.getElementById('mensagem-valido').style.display = 'block';
+                } else {
+                    document.getElementById('mensagem-invalido').style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Erro ao validar documento:', error);
+                document.getElementById('mensagem-invalido').style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-CompiladoresApplication<Compiladores>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "atv.Compiladores.CompiladoresApplication",
+            "projectName": "Compiladores",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}
