@@ -1,14 +1,18 @@
 package atv.Compiladores.controller;
 
+import atv.Compiladores.service.ValidadorDocumento;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
 
-@RestController // Alterado para RestController para suportar JSON
+@RestController
 @RequestMapping("/api")
 public class DocController {
 
+    @Autowired
+    private ValidadorDocumento validadorDocumento; 
     @GetMapping("/")
     public String home() {
         return "index"; 
@@ -19,19 +23,12 @@ public class DocController {
         String tipo = request.get("tipo");
         String documento = request.get("documento");
 
-        boolean valido = validar(tipo, documento);
+        // Validando o documento com o tipo (RG ou CPF)
+        boolean valido = validadorDocumento.run(documento, tipo);
 
+        // Criando um mapa para retornar a resposta
         Map<String, Boolean> response = new HashMap<>();
-        response.put("valido", valido);
+        response.put("valido", valido); // Retornando se o documento é válido ou não
         return response;
-    }
-
-    private boolean validar(String tipo, String documento) {
-        if ("cpf".equalsIgnoreCase(tipo)) {
-            return documento != null && documento.matches("\\d{11}"); 
-        } else if ("cnpj".equalsIgnoreCase(tipo)) {
-            return documento != null && documento.matches("\\d{14}");
-        }
-        return false;
     }
 }
