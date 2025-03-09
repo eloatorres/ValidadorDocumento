@@ -1,194 +1,241 @@
 package atv.Compiladores.service;
 import org.springframework.stereotype.Service;
 
-@Service
+@Service // Necessário pro Spring
 public class ValidadorDocumento {
 
-    private int sumRg = 0;
-    private int poundRg = 2;
+    private int somaPonderadaRg = 0; // Acumula soma de números enquanto a validação do RG não finaliza
+    private int multiplCalcDigRg = 2; // Controle o multiplicador de cada dígito do RG
 
-    public boolean run(final String document, final String type) {
+    public boolean run(final String documento, final String type) {
         try {
-            return isValidDocument(document, type);
+            return isValidDocument(documento, type); // Se o documento for válido, true, senão, false
         } catch (Exception ex) {
             return false;
         }
     }
 
-    private boolean isValidDocument(String document, String type) {
+    private boolean isValidDocument(String documento, String type) {
         if (type.equalsIgnoreCase("rg")) {
-            return isValidRG(document);
+            return rgValido(documento);
+        } else if (type.equalsIgnoreCase("cpf")) {
+            return cpfValido(documento);
         } else {
-            return isValidCpf(document);
+            return false;
         }
     }
 
-    public boolean isValidRG(String document) {
-        sumRg = 0;
-        poundRg = 2;
-        State currentState = State.Q0;
-        boolean hasFirstPoint = false;
-        boolean hasSecondPoint = false;
-        boolean hasFinalScore = false;
+    private enum Estado {
+        Q0, Q1, Q2, Q3, Q4, Q5, Q6, Q7, Q8, Q9, Q10, ERROR
+    }
 
-        for (char c : document.toCharArray()) {
-            switch (currentState) {
+
+    // Validação RG
+    public boolean rgValido(String documento) { //Método principal para validar RG
+        somaPonderadaRg = 0;
+        multiplCalcDigRg = 2;
+        Estado estadoCorrente = Estado.Q0; // estadoCorrente controla em qual estado da validação o código está - estados definidos no enum
+        boolean primeiroPonto = false; // Variável de controle pra verificar se o RG tem "."
+        boolean segundoPonto = false; // Variável de controle pra verificar se o RG tem "."
+        boolean caractereFinal = false; // Variável de controle pra verificar se o RG tem "-"
+
+        for (char c : documento.toCharArray()) { //Transforma a string em um array pra analisar cada caractere individualmente
+            switch (estadoCorrente) { //switch usado para decidir o que fazer em cada estado
                 case Q0:
-                    currentState = (Character.isDigit(c)) ? State.Q1 : State.ERROR;
-                    incrementRgSum(c);
+                estadoCorrente = (Character.isDigit(c)) ? Estado.Q1 : Estado.ERROR; // Verifica se é um número, se for vai pro próximo estado
+                    icrementaRgSoma(c); // acumula o valor do carcatere na soma
                     break;
                 case Q1:
-                    currentState = (Character.isDigit(c)) ? State.Q2 : State.ERROR;
-                    incrementRgSum(c);
+                estadoCorrente = (Character.isDigit(c)) ? Estado.Q2 : Estado.ERROR;
+                    icrementaRgSoma(c);
                     break;
+            
+                    //Validação de Pontuação - início
+
                 case Q2:
                     if (Character.isDigit(c)) {
-                        currentState = State.Q3;
-                        incrementRgSum(c);
-                    } else if (c == '.' && !hasFirstPoint) {
-                        currentState = State.Q2;
-                        hasFirstPoint = true;
+                        estadoCorrente = Estado.Q3;
+                        icrementaRgSoma(c);
+                    } else if (c == '.' && !primeiroPonto) { // aqui o autômato identifica que o primeiro ponto não havia sido encontrado ainda
+                        estadoCorrente = Estado.Q2; // Nesse caso, ele mantem o usuário em Q2 pra que ele coloque o número.
+                        primeiroPonto = true; // Mudamos a variável primeiroPonto pra true, pra ter a marcaçãod e que já apareceu
                     } else {
-                        currentState = State.ERROR;
+                        estadoCorrente = Estado.ERROR;
                     }
                     break;
+
+                    //Validação de Pontuação - fim
+
                 case Q3:
-                    currentState = (Character.isDigit(c)) ? State.Q4 : State.ERROR;
-                    incrementRgSum(c);
+                estadoCorrente = (Character.isDigit(c)) ? Estado.Q4 : Estado.ERROR;
+                    icrementaRgSoma(c);
                     break;
                 case Q4:
-                    currentState = (Character.isDigit(c)) ? State.Q5 : State.ERROR;
-                    incrementRgSum(c);
+                estadoCorrente = (Character.isDigit(c)) ? Estado.Q5 : Estado.ERROR;
+                    icrementaRgSoma(c);
                     break;
+
+                    //Validação de ponto - início
+
                 case Q5:
                     if (Character.isDigit(c)) {
-                        currentState = State.Q6;
-                        incrementRgSum(c);
-                    } else if (c == '.' && !hasSecondPoint && hasFirstPoint) {
-                        currentState = State.Q5;
-                        hasSecondPoint = true;
+                        estadoCorrente = Estado.Q6;
+                        icrementaRgSoma(c);
+                    } else if (c == '.' && !segundoPonto && primeiroPonto) { // Aqui a validação de só acietar o segundo ponto se o primeiro já for TRUE
+                        estadoCorrente = Estado.Q5; // Mantém o uusário no estado q5
+                        segundoPonto = true; // Passa a variável pra TRUE pra ter a marcação do segundo ponto
                     } else {
-                        currentState = State.ERROR;
+                        estadoCorrente = Estado.ERROR;
                     }
                     break;
+
+                    // Validação de ponto - fim
+
                 case Q6:
-                    currentState = (Character.isDigit(c)) ? State.Q7 : State.ERROR;
-                    incrementRgSum(c);
+                estadoCorrente = (Character.isDigit(c)) ? Estado.Q7 : Estado.ERROR;
+                    icrementaRgSoma(c);
                     break;
                 case Q7:
-                    currentState = (Character.isDigit(c)) ? State.Q8 : State.ERROR;
-                    incrementRgSum(c);
+                estadoCorrente = (Character.isDigit(c)) ? Estado.Q8 : Estado.ERROR;
+                    icrementaRgSoma(c);
                     break;
+
+                    // Validação de hífem - início
                 case Q8:
                     if (Character.isDigit(c)) {
-                        currentState = State.Q9;
-                    } else if (c == '-' && !hasFinalScore && hasSecondPoint) {
-                        currentState = State.Q8;
-                        hasFinalScore = true;
+                        estadoCorrente = Estado.Q9;
+                    } else if (c == '-' && !caractereFinal && segundoPonto) {
+                        estadoCorrente = Estado.Q8;
+                        caractereFinal = true;
                     } else {
-                        currentState = State.ERROR;
+                        estadoCorrente = Estado.ERROR;
                     }
                     break;
-                default:
-                    currentState = State.ERROR;
+
+                    // Validação de hífem - fim
+
+
+                default: // acionado quando nenhum dos casos anteriores é atendido
+                estadoCorrente = Estado.ERROR;
             }
 
-            if (currentState == State.ERROR) {
+            if (estadoCorrente == Estado.ERROR) {
                 break;
             }
         }
 
-        if (hasSecondPoint && !hasFinalScore) {
+        if (primeiroPonto && segundoPonto && !caractereFinal) { // Se tiver o primeiro e segundo ponto, e não tiver hífen, documento inválido
             return false;
         }
 
-        if (currentState == State.Q9) {
-            int dv = (sumRg % 11 == 0) ? 0 : 11 - (sumRg % 11);
+        if (primeiroPonto && !segundoPonto) {
+            return false;
+        }
 
-            if (dv == 10 && String.valueOf(document.charAt(8)).equalsIgnoreCase("x")) {
+        if (estadoCorrente == Estado.Q9) { // Se o autômato está no último estado
+            int digitoVerificador = (somaPonderadaRg % 11 == 0) ? 0 : 11 - (somaPonderadaRg % 11); // condicao ? valorSeVerdadeiro : valorSeFalso;
+
+            if (digitoVerificador == 10 && String.valueOf(documento.charAt(8)).equalsIgnoreCase("x")) {
                 return true;
-            } else if (dv == Integer.parseInt(String.valueOf(document.charAt(document.length() - 1)))) {
+            } else if (digitoVerificador == Integer.parseInt(String.valueOf(documento.charAt(documento.length() - 1)))) {
                 return true;
             }
         }
         return false;
     }
 
-    public void incrementRgSum(char c) {
-        sumRg += Integer.parseInt(String.valueOf(c)) * poundRg;
-        poundRg++;
+    public void icrementaRgSoma(char c) {
+        somaPonderadaRg += Integer.parseInt(String.valueOf(c)) * multiplCalcDigRg;
+        multiplCalcDigRg++;
     }
 
-    public boolean isValidCpf(String cpf) {
-        boolean hasSignals = false;
-        int currentState = State.Q0.ordinal();
-        int index = 10;
-        int firstDigitSum = 0;
-        int secondDigitSum = 0;
-        int firstCheck = -1, secondCheck = -1;
 
-        for (char c : cpf.toCharArray()) {
-            switch (currentState) {
-                case 0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13 -> {
-                    if (!Character.isDigit(c)) {
-                        return false;
+
+
+    //Validação CPF
+
+    public boolean cpfValido(String documento) {
+    
+        Estado estadoCorrente = Estado.Q0;
+        boolean primeiroPonto = false;
+        boolean segundoPonto = false;
+        boolean caractereFinal = false;
+    
+        for (char c : documento.toCharArray()) {
+            switch (estadoCorrente) {
+                case Q0:
+                    estadoCorrente = (Character.isDigit(c)) ? Estado.Q1 : Estado.ERROR;
+                    break;
+                case Q1:
+                    estadoCorrente = (Character.isDigit(c)) ? Estado.Q2 : Estado.ERROR;
+                    break;
+                case Q2:
+                    estadoCorrente = (Character.isDigit(c)) ? Estado.Q3 : Estado.ERROR;
+                    break;
+                case Q3:
+                    if (Character.isDigit(c)) {
+                        estadoCorrente = Estado.Q4;
+                    } else if (c == '.' && !primeiroPonto) {
+                        estadoCorrente = Estado.Q3;
+                        primeiroPonto = true;
+                    } else {
+                        estadoCorrente = Estado.ERROR;
                     }
-                }
-                case 3 -> {
-                    if (c == '.') {
-                        hasSignals = true;
-                    } else if (!Character.isDigit(c) && c != '.') {
-                        return false;
+                    break;
+                case Q4:
+                    estadoCorrente = (Character.isDigit(c)) ? Estado.Q5 : Estado.ERROR;
+                    break;
+                case Q5:
+                    estadoCorrente = (Character.isDigit(c)) ? Estado.Q6 : Estado.ERROR;
+                    break;
+                case Q6:
+                    if (Character.isDigit(c)) {
+                        estadoCorrente = Estado.Q7;
+                    } else if (c == '.' && primeiroPonto && !segundoPonto) {
+                        estadoCorrente = Estado.Q6;
+                        segundoPonto = true;
+                    } else {
+                        estadoCorrente = Estado.ERROR;
                     }
-                }
-                case 7 -> {
-                    if (!(Character.isDigit(c) && !hasSignals) && !(c == '.' && hasSignals)) {
-                        return false;
+                    break;
+                case Q7:
+                    estadoCorrente = (Character.isDigit(c)) ? Estado.Q8 : Estado.ERROR;
+                    break;
+                case Q8:
+                    estadoCorrente = (Character.isDigit(c)) ? Estado.Q9 : Estado.ERROR;
+                    break;
+                case Q9:
+                    if (Character.isDigit(c)) {
+                        estadoCorrente = Estado.Q10;
+                    } else if (c == '-' && primeiroPonto && segundoPonto) {
+                        estadoCorrente = Estado.Q9;
+                        caractereFinal = true;
+                    } else {
+                        estadoCorrente = Estado.ERROR;
                     }
-                }
-                case 11 -> {
-                    if (c != '-') {
-                        return false;
-                    }
-                }
-                default -> {
-                    return false;
-                }
+                    break;
+                default:
+                    estadoCorrente = Estado.ERROR;
             }
-
-            if (Character.isDigit(c)) {
-                int num = Character.getNumericValue(c);
-
-                if ((!hasSignals && currentState < 9) || (hasSignals && currentState < 12)) {
-                    firstDigitSum += num * index;
-                    secondDigitSum += num * (index + 1);
-                    index--;
-                }
-
-                if ((!hasSignals && currentState == 9) || (hasSignals && currentState == 12)) {
-                    firstCheck = (firstDigitSum % 11) < 2 ? 0 : 11 - (firstDigitSum % 11);
-                    if (num != firstCheck) {
-                        return false;
-                    }
-                }
-
-                if ((!hasSignals && currentState == 10) || (hasSignals && currentState == 13)) {
-                    secondDigitSum += firstCheck * 2;
-                    secondCheck = (secondDigitSum % 11) < 2 ? 0 : 11 - (secondDigitSum % 11);
-                    if (num != secondCheck) {
-                        return false;
-                    }
-                }
+    
+            if (estadoCorrente == Estado.ERROR) {
+                return false; // Se o estado atual é de erro, retorna false
             }
-
-            currentState++;
+        }
+    
+        if (primeiroPonto && segundoPonto && !caractereFinal) {
+            return true; 
         }
 
-        return currentState == (hasSignals ? 14 : 11);
-    }
+        if (primeiroPonto && !segundoPonto) {
+            return true; 
+        }
+    
+        if (estadoCorrente == Estado.Q10) {
 
-    private enum State {
-        Q0, Q1, Q2, Q3, Q4, Q5, Q6, Q7, Q8, Q9, Q10, Q11, Q12, Q13, ERROR
-    }
+        }
 
+        return false; 
+    }
+    
 }
