@@ -151,91 +151,69 @@ public class ValidadorDocumento {
 
 
 
-
     //Validação CPF
-
     public boolean cpfValido(String documento) {
-    
-        Estado estadoCorrente = Estado.Q0;
-        boolean primeiroPonto = false;
-        boolean segundoPonto = false;
-        boolean caractereFinal = false;
-    
+        if (!cpfFormatoValido(documento)) {
+            return false;
+        }
+   
+        String cpfSemFormatacao = documento.replaceAll("[^\\d]", "");
+        return cpfLogicaValida(cpfSemFormatacao);
+    }
+
+    private boolean cpfFormatoValido(String documento) {
+        enum EstadoCPF { Q0, Q1, Q2, Q3, Q4, Q5, Q6, Q7, Q8, Q9, Q10, Q11, ERROR }
+        EstadoCPF estado = EstadoCPF.Q0;
+        
         for (char c : documento.toCharArray()) {
-            switch (estadoCorrente) {
-                case Q0:
-                    estadoCorrente = (Character.isDigit(c)) ? Estado.Q1 : Estado.ERROR;
-                    break;
-                case Q1:
-                    estadoCorrente = (Character.isDigit(c)) ? Estado.Q2 : Estado.ERROR;
-                    break;
-                case Q2:
-                    estadoCorrente = (Character.isDigit(c)) ? Estado.Q3 : Estado.ERROR;
-                    break;
-                case Q3:
+            switch (estado) {
+                case Q0: case Q1: case Q2: case Q3: case Q4:
+                case Q5: case Q6: case Q7: case Q8: case Q9:
+                case Q10:
                     if (Character.isDigit(c)) {
-                        estadoCorrente = Estado.Q4;
-                    } else if (c == '.' && !primeiroPonto) {
-                        estadoCorrente = Estado.Q3;
-                        primeiroPonto = true;
+                        estado = EstadoCPF.values()[estado.ordinal() + 1];
+                    } else if (c == '.') {
+                        if (estado.ordinal() == 3 || estado.ordinal() == 6) {
+                        } else {
+                            estado = EstadoCPF.ERROR;
+                        }
+                    } else if (c == '-') {
+                        if (estado.ordinal() == 9) {
+                        } else {
+                            estado = EstadoCPF.ERROR;
+                        }
                     } else {
-                        estadoCorrente = Estado.ERROR;
-                    }
-                    break;
-                case Q4:
-                    estadoCorrente = (Character.isDigit(c)) ? Estado.Q5 : Estado.ERROR;
-                    break;
-                case Q5:
-                    estadoCorrente = (Character.isDigit(c)) ? Estado.Q6 : Estado.ERROR;
-                    break;
-                case Q6:
-                    if (Character.isDigit(c)) {
-                        estadoCorrente = Estado.Q7;
-                    } else if (c == '.' && primeiroPonto && !segundoPonto) {
-                        estadoCorrente = Estado.Q6;
-                        segundoPonto = true;
-                    } else {
-                        estadoCorrente = Estado.ERROR;
-                    }
-                    break;
-                case Q7:
-                    estadoCorrente = (Character.isDigit(c)) ? Estado.Q8 : Estado.ERROR;
-                    break;
-                case Q8:
-                    estadoCorrente = (Character.isDigit(c)) ? Estado.Q9 : Estado.ERROR;
-                    break;
-                case Q9:
-                    if (Character.isDigit(c)) {
-                        estadoCorrente = Estado.Q10;
-                    } else if (c == '-' && primeiroPonto && segundoPonto) {
-                        estadoCorrente = Estado.Q9;
-                        caractereFinal = true;
-                    } else {
-                        estadoCorrente = Estado.ERROR;
+                        estado = EstadoCPF.ERROR;
                     }
                     break;
                 default:
-                    estadoCorrente = Estado.ERROR;
+                    estado = EstadoCPF.ERROR;
             }
-    
-            if (estadoCorrente == Estado.ERROR) {
-                return false; // Se o estado atual é de erro, retorna false
+            
+            if (estado == EstadoCPF.ERROR) {
+                return false;
             }
         }
-    
-        if (primeiroPonto && segundoPonto && !caractereFinal) {
-            return true; 
-        }
-
-        if (primeiroPonto && !segundoPonto) {
-            return true; 
-        }
-    
-        if (estadoCorrente == Estado.Q10) {
-
-        }
-
-        return false; 
+        
+        return (estado == EstadoCPF.Q11);
     }
-    
+        
+    private boolean cpfLogicaValida(String cpf) {
+        int soma = 0;
+        for (int i = 0; i < 9; i++) {
+            soma += Character.getNumericValue(cpf.charAt(i)) * (10 - i);
+        }
+        int resto = soma % 11;
+        int digito1 = (resto < 2) ? 0 : 11 - resto;
+        
+        soma = 0;
+        for (int i = 0; i < 10; i++) {
+            soma += Character.getNumericValue(cpf.charAt(i)) * (11 - i);
+        }
+        resto = soma % 11;
+        int digito2 = (resto < 2) ? 0 : 11 - resto;
+        
+        return (digito1 == Character.getNumericValue(cpf.charAt(9)) &&
+                digito2 == Character.getNumericValue(cpf.charAt(10)));
+    }
 }

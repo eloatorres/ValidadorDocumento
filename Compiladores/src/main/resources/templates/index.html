@@ -31,6 +31,7 @@
         document.getElementById('docForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
+            // Esconde as mensagens ao iniciar a validação
             document.getElementById('mensagem-valido').style.display = 'none';
             document.getElementById('mensagem-invalido').style.display = 'none';
             
@@ -41,30 +42,36 @@
                 alert("Por favor, digite um número de documento.");
                 return;
             }
-
+    
             try {
-                const response = await fetch('/api/validar-documento', {
+                const response = await fetch('/documento', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ tipo, documento })
                 });
-                
+    
                 if (!response.ok) {
                     throw new Error("Erro na requisição");
                 }
-
-                const data = await response.json();
-                
-                if (data.valido) {
+    
+                // Lê a resposta como booleano (forçando a conversão, se necessário)
+                const valido = await response.json();
+    
+                // Exibe no console para depuração
+                console.log("Retorno da API:", valido, typeof valido);
+    
+                // Se o retorno for uma string "true", converte para booleano
+                if (valido === true || valido === "true") {
                     document.getElementById('mensagem-valido').style.display = 'block';
                 } else {
                     document.getElementById('mensagem-invalido').style.display = 'block';
                 }
+    
             } catch (error) {
                 console.error('Erro ao validar documento:', error);
                 document.getElementById('mensagem-invalido').style.display = 'block';
             }
         });
-    </script>
+    </script>    
 </body>
 </html>
